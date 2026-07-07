@@ -8424,28 +8424,30 @@ function ATHDashboard() {
   }
 
   // --- Login screen ---
-  if (!role) {
+  if (!role || role === "__tutor_pin") {
     return (
       <div style={{ minHeight: "100vh", background: LIGHT_BG, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter, sans-serif" }}>
-        <div style={{ background: "#fff", borderRadius: 12, padding: "48px 40px", width: 380, boxShadow: "0 4px 24px rgba(26,58,92,0.10)", border: `1px solid ${BORDER}` }}>
-          <div style={{ textAlign: "center", marginBottom: 32 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8 }}>Analytical Training Hub</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: NAVY, fontFamily: "Lora, Georgia, serif" }}>Welcome</div>
-            <div style={{ fontSize: 13, color: "#64748b", marginTop: 6 }}>Sign in to continue your training</div>
+        <div style={{ width: 420, borderRadius: 14, overflow: "hidden", boxShadow: "0 8px 40px rgba(26,58,92,0.18)" }}>
+          <div style={{ background: NAVY, padding: "40px 40px 32px", textAlign: "center", borderBottom: `4px solid ${CRIMSON}` }}>
+            <div style={{ fontSize: 12, fontWeight: 900, letterSpacing: 4, color: CRIMSON, textTransform: "uppercase", marginBottom: 10 }}>Analytical Training Hub</div>
+            <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", fontFamily: "Lora, Georgia, serif" }}>Welcome</div>
+            <div style={{ fontSize: 13, color: "#c3d3e6", marginTop: 8, fontWeight: 600 }}>Sign in to continue your training</div>
           </div>
-          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-            <button onClick={() => setRole("student")} style={{ flex: 1, padding: "12px 0", background: NAVY, color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Student</button>
-            <button onClick={() => setRole("__tutor_pin")} style={{ flex: 1, padding: "12px 0", background: "#fff", color: NAVY, border: `2px solid ${NAVY}`, borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Tutor</button>
-          </div>
-          {role === "__tutor_pin" && (
-            <div>
-              <input type="password" placeholder="Tutor PIN" value={pin} onChange={e => { setPin(e.target.value); setPinError(""); }}
-                style={{ width: "100%", padding: "10px 12px", borderRadius: 7, border: `1px solid ${BORDER}`, fontSize: 14, marginBottom: 8, boxSizing: "border-box", fontFamily: "Inter, sans-serif" }}
-                onKeyDown={e => e.key === "Enter" && handleLogin("tutor")} />
-              {pinError && <div style={{ color: CRIMSON, fontSize: 12, marginBottom: 6 }}>{pinError}</div>}
-              <button onClick={() => handleLogin("tutor")} style={{ width: "100%", padding: "11px 0", background: CRIMSON, color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Enter as Tutor</button>
+          <div style={{ background: "#fff", padding: "32px 40px 40px" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+              <button onClick={() => setRole("student")} style={{ flex: 1, padding: "14px 0", background: NAVY, color: "#fff", border: "none", borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Student</button>
+              <button onClick={() => setRole("__tutor_pin")} style={{ flex: 1, padding: "14px 0", background: "#fff", color: NAVY, border: `2.5px solid ${NAVY}`, borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Tutor</button>
             </div>
-          )}
+            {role === "__tutor_pin" && (
+              <div>
+                <input type="password" placeholder="Tutor PIN" value={pin} onChange={e => { setPin(e.target.value); setPinError(""); }}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 7, border: `2.5px solid ${BORDER}`, fontSize: 14, marginBottom: 8, boxSizing: "border-box", fontFamily: "Inter, sans-serif", fontWeight: 600 }}
+                  onKeyDown={e => e.key === "Enter" && handleLogin("tutor")} />
+                {pinError && <div style={{ color: CRIMSON, fontSize: 12, marginBottom: 6, fontWeight: 700 }}>{pinError}</div>}
+                <button onClick={() => handleLogin("tutor")} style={{ width: "100%", padding: "13px 0", background: CRIMSON, color: "#fff", border: "none", borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Enter as Tutor</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -8455,25 +8457,29 @@ function ATHDashboard() {
   if (role === "student" && !studentId && !demoMode) {
     return (
       <div style={{ minHeight: "100vh", background: LIGHT_BG, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter, sans-serif" }}>
-        <div style={{ background: "#fff", borderRadius: 12, padding: "40px 36px", width: 400, boxShadow: "0 4px 24px rgba(26,58,92,0.10)", border: `1px solid ${BORDER}` }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8, textAlign: "center" }}>Analytical Training Hub</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: NAVY, fontFamily: "Lora, Georgia, serif", textAlign: "center", marginBottom: 20 }}>Who's training?</div>
-          {roster.length === 0 ? (
-            <div style={{ fontSize: 13, color: "#64748b", textAlign: "center", lineHeight: 1.6, marginBottom: 16 }}>
-              No students on the roster yet. Ask your tutor to add students in the Tutor Dashboard.
-            </div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, maxHeight: 280, overflowY: "auto" }}>
-              {roster.map(s => (
-                <button key={s.id} onClick={() => setStudentId(s.id)} style={{ padding: "10px 14px", background: "#fff", border: `1.5px solid ${BORDER}`, borderRadius: 8, textAlign: "left", fontWeight: 600, fontSize: 13.5, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
-          <button onClick={() => setDemoMode(true)} style={{ width: "100%", padding: "8px 0", background: "none", border: "none", color: "#94a3b8", fontSize: 11, cursor: "pointer", fontFamily: "Inter, sans-serif", textDecoration: "underline" }}>
-            Continue without saving (demo)
-          </button>
+        <div style={{ width: 440, borderRadius: 14, overflow: "hidden", boxShadow: "0 8px 40px rgba(26,58,92,0.18)" }}>
+          <div style={{ background: NAVY, padding: "32px 36px 26px", textAlign: "center", borderBottom: `4px solid ${CRIMSON}` }}>
+            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8 }}>Analytical Training Hub</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: "#fff", fontFamily: "Lora, Georgia, serif" }}>Who's training?</div>
+          </div>
+          <div style={{ background: "#fff", padding: "28px 36px 32px" }}>
+            {roster.length === 0 ? (
+              <div style={{ fontSize: 13, color: "#64748b", textAlign: "center", lineHeight: 1.6, marginBottom: 16, fontWeight: 600 }}>
+                No students on the roster yet. Ask your tutor to add students in the Tutor Dashboard.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, maxHeight: 280, overflowY: "auto" }}>
+                {roster.map(s => (
+                  <button key={s.id} onClick={() => setStudentId(s.id)} style={{ padding: "12px 16px", background: "#fff", border: `2.5px solid ${BORDER}`, borderRadius: 8, textAlign: "left", fontWeight: 800, fontSize: 14, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button onClick={() => setDemoMode(true)} style={{ width: "100%", padding: "8px 0", background: "none", border: "none", color: "#94a3b8", fontSize: 11, cursor: "pointer", fontFamily: "Inter, sans-serif", textDecoration: "underline", fontWeight: 700 }}>
+              Continue without saving (demo)
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -8482,28 +8488,28 @@ function ATHDashboard() {
   // --- Tutor: haven't picked a student to preview yet ---
   if (role === "tutor" && !viewingStudentId) {
     return (
-      <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "Inter, sans-serif", padding: "40px 24px" }}>
-        <div style={{ maxWidth: 520, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8 }}>Analytical Training Hub</div>
-            <div style={{ fontSize: 24, fontWeight: 700, color: NAVY, fontFamily: "Lora, Georgia, serif" }}>Tutor tools</div>
-          </div>
-          <button onClick={() => setActiveKey("tutor_dashboard")} style={{ width: "100%", padding: "16px 20px", background: NAVY, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif", marginBottom: 24 }}>
+      <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "Inter, sans-serif" }}>
+        <div style={{ background: NAVY, padding: "36px 24px", textAlign: "center", borderBottom: `4px solid ${CRIMSON}` }}>
+          <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8 }}>Analytical Training Hub</div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: "#fff", fontFamily: "Lora, Georgia, serif" }}>Tutor tools</div>
+        </div>
+        <div style={{ maxWidth: 520, margin: "0 auto", padding: "32px 24px" }}>
+          <button onClick={() => setActiveKey("tutor_dashboard")} style={{ width: "100%", padding: "18px 20px", background: CRIMSON, color: "#fff", border: "none", borderRadius: 10, fontWeight: 900, fontSize: 15, cursor: "pointer", fontFamily: "Inter, sans-serif", marginBottom: 24 }}>
             Open Tutor Dashboard →
           </button>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: "#64748b", textTransform: "uppercase", marginBottom: 10 }}>Or preview a student's module map</div>
+          <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: "#64748b", textTransform: "uppercase", marginBottom: 10 }}>Or preview a student's module map</div>
           {roster.length === 0 ? (
-            <div style={{ fontSize: 13, color: "#64748b" }}>No students on the roster yet — add some in the Tutor Dashboard.</div>
+            <div style={{ fontSize: 13, color: "#64748b", fontWeight: 600 }}>No students on the roster yet — add some in the Tutor Dashboard.</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {roster.map(s => (
-                <button key={s.id} onClick={() => setViewingStudentId(s.id)} style={{ padding: "10px 14px", background: "#fff", border: `1.5px solid ${BORDER}`, borderRadius: 8, textAlign: "left", fontWeight: 600, fontSize: 13.5, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+                <button key={s.id} onClick={() => setViewingStudentId(s.id)} style={{ padding: "12px 16px", background: "#fff", border: `2.5px solid ${BORDER}`, borderRadius: 8, textAlign: "left", fontWeight: 800, fontSize: 14, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
                   {s.name}
                 </button>
               ))}
             </div>
           )}
-          <button onClick={logOut} style={{ marginTop: 24, width: "100%", padding: "8px 0", background: "none", border: "none", color: "#94a3b8", fontSize: 11, cursor: "pointer", fontFamily: "Inter, sans-serif", textDecoration: "underline" }}>
+          <button onClick={logOut} style={{ marginTop: 24, width: "100%", padding: "8px 0", background: "none", border: "none", color: "#94a3b8", fontSize: 11, cursor: "pointer", fontFamily: "Inter, sans-serif", textDecoration: "underline", fontWeight: 700 }}>
             ← Log out
           </button>
         </div>
@@ -8524,49 +8530,51 @@ function ATHDashboard() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "Inter, sans-serif", padding: "32px 24px 60px" }}>
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+    <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "Inter, sans-serif" }}>
+      <div style={{ background: NAVY, borderBottom: `4px solid ${CRIMSON}`, padding: "36px 24px 32px" }}>
+        <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8 }}>
               Analytical Training Hub
             </div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: NAVY, fontFamily: "Lora, Georgia, serif" }}>
+            <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", fontFamily: "Lora, Georgia, serif" }}>
               {role === "tutor" ? `Viewing: ${displayName}` : `Welcome back${displayName ? ", " + displayName : ""}`}
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
             {role === "tutor" && (
-              <button onClick={() => setViewingStudentId(null)} style={{ padding: "8px 14px", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 12, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+              <button onClick={() => setViewingStudentId(null)} style={{ padding: "9px 16px", background: "rgba(255,255,255,0.08)", border: `2px solid rgba(255,255,255,0.35)`, borderRadius: 8, fontWeight: 800, fontSize: 12, color: "#fff", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
                 Switch student
               </button>
             )}
-            <button onClick={logOut} style={{ padding: "8px 14px", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 12, color: "#64748b", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+            <button onClick={logOut} style={{ padding: "9px 16px", background: "rgba(255,255,255,0.08)", border: `2px solid rgba(255,255,255,0.35)`, borderRadius: 8, fontWeight: 800, fontSize: 12, color: "#fff", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
               Log out
             </button>
           </div>
         </div>
+      </div>
 
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: "28px 24px 60px" }}>
         {loadingProgress ? (
-          <div style={{ fontSize: 13, color: "#64748b", padding: "16px 0" }}>Loading progress…</div>
+          <div style={{ fontSize: 13, color: "#64748b", padding: "16px 0", fontWeight: 700 }}>Loading progress…</div>
         ) : continueModule ? (
           <button
             onClick={() => setActiveKey(continueModule.key)}
-            style={{ display: "block", width: "100%", textAlign: "left", padding: "18px 22px", background: NAVY, color: "#fff", border: "none", borderRadius: 12, marginTop: 20, marginBottom: 32, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
+            style={{ display: "block", width: "100%", textAlign: "left", padding: "20px 24px", background: CRIMSON, color: "#fff", border: "none", borderRadius: 12, marginBottom: 32, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
           >
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#93c5fd", marginBottom: 4 }}>Continue where you left off</div>
-            <div style={{ fontSize: 17, fontWeight: 700 }}>{continueModule.label} →</div>
+            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, textTransform: "uppercase", color: "#ffd6de", marginBottom: 5 }}>Continue where you left off</div>
+            <div style={{ fontSize: 19, fontWeight: 900 }}>{continueModule.label} →</div>
           </button>
         ) : (
-          <div style={{ padding: "18px 22px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, marginTop: 20, marginBottom: 32 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: "#15803d" }}>🎉 All modules passed!</div>
-            <div style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>Revisit any module below any time, or try Full Essay Mode for a complete timed run.</div>
+          <div style={{ padding: "20px 24px", background: "#f0fdf4", border: "2.5px solid #bbf7d0", borderRadius: 12, marginBottom: 32 }}>
+            <div style={{ fontSize: 16, fontWeight: 900, color: "#15803d" }}>🎉 All modules passed!</div>
+            <div style={{ fontSize: 12, color: "#166534", marginTop: 3, fontWeight: 600 }}>Revisit any module below any time, or try Full Essay Mode for a complete timed run.</div>
           </div>
         )}
 
         {allGroups.map((group, gi) => (
           <div key={gi} style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: "#64748b", textTransform: "uppercase", marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: 2, color: NAVY, textTransform: "uppercase", marginBottom: 12, paddingLeft: 10, borderLeft: `4px solid ${CRIMSON}` }}>
               {group.label}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
@@ -8578,18 +8586,18 @@ function ATHDashboard() {
                     key={m.key}
                     onClick={() => setActiveKey(m.key)}
                     style={{
-                      textAlign: "left", padding: "14px 16px", background: "#fff",
-                      border: `1.5px solid ${st === "passed" ? "#bbf7d0" : BORDER}`, borderRadius: 10, cursor: "pointer",
+                      textAlign: "left", padding: "16px 18px", background: "#fff",
+                      border: `2.5px solid ${st === "passed" ? "#bbf7d0" : BORDER}`, borderRadius: 10, cursor: "pointer",
                       fontFamily: "Inter, sans-serif",
                     }}
                     onMouseEnter={e => e.currentTarget.style.borderColor = NAVY}
                     onMouseLeave={e => e.currentTarget.style.borderColor = (st === "passed" ? "#bbf7d0" : BORDER)}
                   >
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <span style={{ fontWeight: 600, fontSize: 13.5, color: NAVY }}>{m.label}</span>
-                      <span style={{ fontSize: 14 }}>{badge.icon}</span>
+                      <span style={{ fontWeight: 800, fontSize: 14, color: NAVY }}>{m.label}</span>
+                      <span style={{ fontSize: 15 }}>{badge.icon}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: badge.color, marginTop: 4, fontWeight: 600 }}>{badge.label}</div>
+                    <div style={{ fontSize: 11, color: badge.color, marginTop: 5, fontWeight: 800 }}>{badge.label}</div>
                   </button>
                 );
               })}
@@ -8598,7 +8606,7 @@ function ATHDashboard() {
         ))}
 
         {role === "tutor" && (
-          <button onClick={() => setActiveKey("tutor_dashboard")} style={{ marginTop: 8, padding: "12px 20px", background: "#fff", border: `1.5px solid ${NAVY}`, borderRadius: 10, fontWeight: 700, fontSize: 13, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+          <button onClick={() => setActiveKey("tutor_dashboard")} style={{ marginTop: 8, padding: "13px 22px", background: CRIMSON, border: "none", borderRadius: 10, fontWeight: 900, fontSize: 14, color: "#fff", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
             Open Tutor Dashboard →
           </button>
         )}
