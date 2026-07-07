@@ -8343,6 +8343,7 @@ function ATHDashboard() {
   const [viewingStudentId, setViewingStudentId] = useState(null); // tutor: which student's map they're previewing
   const [progressMap, setProgressMap] = useState({});
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const [nameQuery, setNameQuery] = useState(""); // student picker: type-your-own-name, doesn't expose the full roster
 
   const effectiveStudentId = role === "tutor" ? viewingStudentId : studentId;
 
@@ -8433,12 +8434,12 @@ function ATHDashboard() {
             <div style={{ fontSize: 30, fontWeight: 900, color: "#fff", fontFamily: "Lora, Georgia, serif" }}>Welcome</div>
             <div style={{ fontSize: 13, color: "#c3d3e6", marginTop: 8, fontWeight: 600 }}>Sign in to continue your training</div>
           </div>
-          <div style={{ background: "#fff", padding: "32px 40px 40px" }}>
-            <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-              <button onClick={() => setRole("student")} style={{ flex: 1, padding: "14px 0", background: NAVY, color: "#fff", border: "none", borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Student</button>
-              <button onClick={() => setRole("__tutor_pin")} style={{ flex: 1, padding: "14px 0", background: "#fff", color: NAVY, border: `2.5px solid ${NAVY}`, borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Tutor</button>
-            </div>
-            {role === "__tutor_pin" && (
+            <div style={{ background: "#fff", padding: "32px 40px 40px" }}>
+              <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+                <button onClick={() => setRole("student")} style={{ flex: 1, padding: "14px 0", background: NAVY, color: "#fff", border: "none", borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Student</button>
+                <button onClick={() => setRole("__tutor_pin")} style={{ flex: 1, padding: "14px 0", background: role === "__tutor_pin" ? CRIMSON : "#fff", color: role === "__tutor_pin" ? "#fff" : NAVY, border: `2.5px solid ${role === "__tutor_pin" ? CRIMSON : NAVY}`, borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Tutor</button>
+              </div>
+              {role === "__tutor_pin" && (
               <div>
                 <input type="password" placeholder="Tutor PIN" value={pin} onChange={e => { setPin(e.target.value); setPinError(""); }}
                   style={{ width: "100%", padding: "12px 14px", borderRadius: 7, border: `2.5px solid ${BORDER}`, fontSize: 14, marginBottom: 8, boxSizing: "border-box", fontFamily: "Inter, sans-serif", fontWeight: 600 }}
@@ -8453,8 +8454,12 @@ function ATHDashboard() {
     );
   }
 
-  // --- Student: pick who's training ---
+  // --- Student: find yourself by name (no list of other students shown) ---
   if (role === "student" && !studentId && !demoMode) {
+    const trimmedQuery = nameQuery.trim().toLowerCase();
+    const matchedStudent = trimmedQuery ? roster.find(s => s.name.trim().toLowerCase() === trimmedQuery) : null;
+    const hasCloseMatches = trimmedQuery.length >= 2 && roster.some(s => s.name.trim().toLowerCase().includes(trimmedQuery));
+
     return (
       <div style={{ minHeight: "100vh", background: LIGHT_BG, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter, sans-serif" }}>
         <div style={{ width: 440, borderRadius: 14, overflow: "hidden", boxShadow: "0 8px 40px rgba(26,58,92,0.18)" }}>
@@ -8468,12 +8473,27 @@ function ATHDashboard() {
                 No students on the roster yet. Ask your tutor to add students in the Tutor Dashboard.
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, maxHeight: 280, overflowY: "auto" }}>
-                {roster.map(s => (
-                  <button key={s.id} onClick={() => setStudentId(s.id)} style={{ padding: "12px 16px", background: "#fff", border: `2.5px solid ${BORDER}`, borderRadius: 8, textAlign: "left", fontWeight: 800, fontSize: 14, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
-                    {s.name}
+              <div style={{ marginBottom: 16 }}>
+                <input
+                  type="text"
+                  value={nameQuery}
+                  onChange={e => setNameQuery(e.target.value)}
+                  placeholder="Type your full name…"
+                  autoFocus
+                  onKeyDown={e => e.key === "Enter" && matchedStudent && setStudentId(matchedStudent.id)}
+                  style={{ width: "100%", padding: "12px 14px", borderRadius: 8, border: `2.5px solid ${matchedStudent ? "#16a34a" : BORDER}`, fontSize: 15, fontWeight: 700, color: NAVY, boxSizing: "border-box", fontFamily: "Inter, sans-serif", outline: "none" }}
+                />
+                {matchedStudent ? (
+                  <button onClick={() => setStudentId(matchedStudent.id)} style={{ width: "100%", marginTop: 10, padding: "12px 0", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 900, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+                    Continue as {matchedStudent.name} →
                   </button>
-                ))}
+                ) : trimmedQuery && hasCloseMatches ? (
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 8, fontWeight: 600 }}>Keep typing your full name exactly as your tutor entered it.</div>
+                ) : trimmedQuery ? (
+                  <div style={{ fontSize: 12, color: CRIMSON, marginTop: 8, fontWeight: 700 }}>No match — check the spelling, or ask your tutor to confirm your name on the roster.</div>
+                ) : (
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 8, fontWeight: 600 }}>Type the exact name your tutor added you under.</div>
+                )}
               </div>
             )}
             <button onClick={() => setDemoMode(true)} style={{ width: "100%", padding: "8px 0", background: "none", border: "none", color: "#94a3b8", fontSize: 11, cursor: "pointer", fontFamily: "Inter, sans-serif", textDecoration: "underline", fontWeight: 700 }}>
