@@ -8333,6 +8333,281 @@ const MODULE_GROUPS = [
   },
 ];
 
+function ATHDashboard() {
+  const { useAuth, useRoster, getAllProgress, resetSession } = window.ATHCore;
+
+  const { role, setRole, pin, setPin, pinError, setPinError, login } = useAuth();
+  const { roster, studentId, setStudentId, demoMode, setDemoMode } = useRoster();
+
+  const [activeKey, setActiveKey] = useState(null);
+  const [viewingStudentId, setViewingStudentId] = useState(null); // tutor: which student's map they're previewing
+  const [progressMap, setProgressMap] = useState({});
+  const [loadingProgress, setLoadingProgress] = useState(false);
+
+  const effectiveStudentId = role === "tutor" ? viewingStudentId : studentId;
+
+  async function loadProgress() {
+    if (!effectiveStudentId) { setProgressMap({}); return; }
+    setLoadingProgress(true);
+    const all = await getAllProgress();
+    setProgressMap(all[effectiveStudentId] || {});
+    setLoadingProgress(false);
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!effectiveStudentId) { setProgressMap({}); return; }
+      setLoadingProgress(true);
+      const all = await getAllProgress();
+      if (!cancelled) {
+        setProgressMap(all[effectiveStudentId] || {});
+        setLoadingProgress(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [effectiveStudentId]);
+
+  function handleLogin(r) {
+    login(r);
+  }
+
+  function logOut() {
+    resetSession();
+    setRole(null);
+    setStudentId(null);
+    setDemoMode(false);
+    setViewingStudentId(null);
+    setActiveKey(null);
+    setProgressMap({});
+  }
+
+  const allGroups = MODULE_GROUPS.filter(g => g.label !== "Tutor Tools");
+  const flatModules = allGroups.flatMap(g => g.modules);
+  const tutorDashboardEntry = MODULE_GROUPS.find(g => g.label === "Tutor Tools").modules[0];
+
+  function statusFor(key) {
+    const p = progressMap[key];
+    if (!p) return "not_started";
+    if (p.passed) return "passed";
+    if ((p.attempts || []).length > 0) return "in_progress";
+    return "not_started";
+  }
+
+  function findContinueModule() {
+    for (const m of flatModules) {
+      if (statusFor(m.key) !== "passed") return m;
+    }
+    return null;
+  }
+
+  // --- Currently inside a module or the Tutor Dashboard ---
+  if (activeKey) {
+    const found = flatModules.concat([tutorDashboardEntry]).find(m => m.key === activeKey);
+    const ActiveComponent = found.Component;
+    return (
+      <div style={{ position: "relative", minHeight: "100vh" }}>
+        <button
+          onClick={() => { setActiveKey(null); loadProgress(); }}
+          style={{
+            position: "fixed", top: 10, right: 10, zIndex: 1000,
+            padding: "8px 16px", background: NAVY, color: "#fff", border: "none",
+            borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: "pointer",
+            fontFamily: "Inter, sans-serif", boxShadow: "0 2px 10px rgba(0,0,0,0.25)"
+          }}
+        >
+          ← Back to Dashboard
+        </button>
+        <ActiveComponent key={activeKey} />
+      </div>
+    );
+  }
+
+  // --- Login screen ---
+  if (!role) {
+    return (
+      <div style={{ minHeight: "100vh", background: LIGHT_BG, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter, sans-serif" }}>
+        <div style={{ background: "#fff", borderRadius: 12, padding: "48px 40px", width: 380, boxShadow: "0 4px 24px rgba(26,58,92,0.10)", border: `1px solid ${BORDER}` }}>
+          <div style={{ textAlign: "center", marginBottom: 32 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8 }}>Analytical Training Hub</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: NAVY, fontFamily: "Lora, Georgia, serif" }}>Welcome</div>
+            <div style={{ fontSize: 13, color: "#64748b", marginTop: 6 }}>Sign in to continue your training</div>
+          </div>
+          <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
+            <button onClick={() => setRole("student")} style={{ flex: 1, padding: "12px 0", background: NAVY, color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Student</button>
+            <button onClick={() => setRole("__tutor_pin")} style={{ flex: 1, padding: "12px 0", background: "#fff", color: NAVY, border: `2px solid ${NAVY}`, borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Tutor</button>
+          </div>
+          {role === "__tutor_pin" && (
+            <div>
+              <input type="password" placeholder="Tutor PIN" value={pin} onChange={e => { setPin(e.target.value); setPinError(""); }}
+                style={{ width: "100%", padding: "10px 12px", borderRadius: 7, border: `1px solid ${BORDER}`, fontSize: 14, marginBottom: 8, boxSizing: "border-box", fontFamily: "Inter, sans-serif" }}
+                onKeyDown={e => e.key === "Enter" && handleLogin("tutor")} />
+              {pinError && <div style={{ color: CRIMSON, fontSize: 12, marginBottom: 6 }}>{pinError}</div>}
+              <button onClick={() => handleLogin("tutor")} style={{ width: "100%", padding: "11px 0", background: CRIMSON, color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>Enter as Tutor</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Student: pick who's training ---
+  if (role === "student" && !studentId && !demoMode) {
+    return (
+      <div style={{ minHeight: "100vh", background: LIGHT_BG, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "Inter, sans-serif" }}>
+        <div style={{ background: "#fff", borderRadius: 12, padding: "40px 36px", width: 400, boxShadow: "0 4px 24px rgba(26,58,92,0.10)", border: `1px solid ${BORDER}` }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8, textAlign: "center" }}>Analytical Training Hub</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: NAVY, fontFamily: "Lora, Georgia, serif", textAlign: "center", marginBottom: 20 }}>Who's training?</div>
+          {roster.length === 0 ? (
+            <div style={{ fontSize: 13, color: "#64748b", textAlign: "center", lineHeight: 1.6, marginBottom: 16 }}>
+              No students on the roster yet. Ask your tutor to add students in the Tutor Dashboard.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16, maxHeight: 280, overflowY: "auto" }}>
+              {roster.map(s => (
+                <button key={s.id} onClick={() => setStudentId(s.id)} style={{ padding: "10px 14px", background: "#fff", border: `1.5px solid ${BORDER}`, borderRadius: 8, textAlign: "left", fontWeight: 600, fontSize: 13.5, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <button onClick={() => setDemoMode(true)} style={{ width: "100%", padding: "8px 0", background: "none", border: "none", color: "#94a3b8", fontSize: 11, cursor: "pointer", fontFamily: "Inter, sans-serif", textDecoration: "underline" }}>
+            Continue without saving (demo)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Tutor: haven't picked a student to preview yet ---
+  if (role === "tutor" && !viewingStudentId) {
+    return (
+      <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "Inter, sans-serif", padding: "40px 24px" }}>
+        <div style={{ maxWidth: 520, margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 8 }}>Analytical Training Hub</div>
+            <div style={{ fontSize: 24, fontWeight: 700, color: NAVY, fontFamily: "Lora, Georgia, serif" }}>Tutor tools</div>
+          </div>
+          <button onClick={() => setActiveKey("tutor_dashboard")} style={{ width: "100%", padding: "16px 20px", background: NAVY, color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "Inter, sans-serif", marginBottom: 24 }}>
+            Open Tutor Dashboard →
+          </button>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: "#64748b", textTransform: "uppercase", marginBottom: 10 }}>Or preview a student's module map</div>
+          {roster.length === 0 ? (
+            <div style={{ fontSize: 13, color: "#64748b" }}>No students on the roster yet — add some in the Tutor Dashboard.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {roster.map(s => (
+                <button key={s.id} onClick={() => setViewingStudentId(s.id)} style={{ padding: "10px 14px", background: "#fff", border: `1.5px solid ${BORDER}`, borderRadius: 8, textAlign: "left", fontWeight: 600, fontSize: 13.5, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <button onClick={logOut} style={{ marginTop: 24, width: "100%", padding: "8px 0", background: "none", border: "none", color: "#94a3b8", fontSize: 11, cursor: "pointer", fontFamily: "Inter, sans-serif", textDecoration: "underline" }}>
+            ← Log out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Main dashboard: module map with live status ---
+  const continueModule = findContinueModule();
+  const displayName = role === "tutor"
+    ? (roster.find(s => s.id === viewingStudentId) || {}).name
+    : (demoMode ? "Demo" : (roster.find(s => s.id === studentId) || {}).name);
+
+  const STATUS_BADGE = {
+    passed: { icon: "✅", label: "Passed", color: "#16a34a" },
+    in_progress: { icon: "🟡", label: "In progress", color: "#d97706" },
+    not_started: { icon: "⚪", label: "Not started", color: "#94a3b8" },
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: LIGHT_BG, fontFamily: "Inter, sans-serif", padding: "32px 24px 60px" }}>
+      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, color: CRIMSON, textTransform: "uppercase", marginBottom: 6 }}>
+              Analytical Training Hub
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: NAVY, fontFamily: "Lora, Georgia, serif" }}>
+              {role === "tutor" ? `Viewing: ${displayName}` : `Welcome back${displayName ? ", " + displayName : ""}`}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+            {role === "tutor" && (
+              <button onClick={() => setViewingStudentId(null)} style={{ padding: "8px 14px", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 12, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+                Switch student
+              </button>
+            )}
+            <button onClick={logOut} style={{ padding: "8px 14px", background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 8, fontWeight: 600, fontSize: 12, color: "#64748b", cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+              Log out
+            </button>
+          </div>
+        </div>
+
+        {loadingProgress ? (
+          <div style={{ fontSize: 13, color: "#64748b", padding: "16px 0" }}>Loading progress…</div>
+        ) : continueModule ? (
+          <button
+            onClick={() => setActiveKey(continueModule.key)}
+            style={{ display: "block", width: "100%", textAlign: "left", padding: "18px 22px", background: NAVY, color: "#fff", border: "none", borderRadius: 12, marginTop: 20, marginBottom: 32, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", color: "#93c5fd", marginBottom: 4 }}>Continue where you left off</div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{continueModule.label} →</div>
+          </button>
+        ) : (
+          <div style={{ padding: "18px 22px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, marginTop: 20, marginBottom: 32 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "#15803d" }}>🎉 All modules passed!</div>
+            <div style={{ fontSize: 12, color: "#166534", marginTop: 2 }}>Revisit any module below any time, or try Full Essay Mode for a complete timed run.</div>
+          </div>
+        )}
+
+        {allGroups.map((group, gi) => (
+          <div key={gi} style={{ marginBottom: 28 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: "#64748b", textTransform: "uppercase", marginBottom: 10 }}>
+              {group.label}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
+              {group.modules.map(m => {
+                const st = statusFor(m.key);
+                const badge = STATUS_BADGE[st];
+                return (
+                  <button
+                    key={m.key}
+                    onClick={() => setActiveKey(m.key)}
+                    style={{
+                      textAlign: "left", padding: "14px 16px", background: "#fff",
+                      border: `1.5px solid ${st === "passed" ? "#bbf7d0" : BORDER}`, borderRadius: 10, cursor: "pointer",
+                      fontFamily: "Inter, sans-serif",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = NAVY}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = (st === "passed" ? "#bbf7d0" : BORDER)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <span style={{ fontWeight: 600, fontSize: 13.5, color: NAVY }}>{m.label}</span>
+                      <span style={{ fontSize: 14 }}>{badge.icon}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: badge.color, marginTop: 4, fontWeight: 600 }}>{badge.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+
+        {role === "tutor" && (
+          <button onClick={() => setActiveKey("tutor_dashboard")} style={{ marginTop: 8, padding: "12px 20px", background: "#fff", border: `1.5px solid ${NAVY}`, borderRadius: 10, fontWeight: 700, fontSize: 13, color: NAVY, cursor: "pointer", fontFamily: "Inter, sans-serif" }}>
+            Open Tutor Dashboard →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 function ATHTestHarness() {
   const [activeKey, setActiveKey] = useState(null);
 
@@ -8403,7 +8678,7 @@ function ATHTestHarness() {
 }
 
 
-ReactDOM.createRoot(document.getElementById('root')).render(<ATHTestHarness />);
+ReactDOM.createRoot(document.getElementById('root')).render(<ATHDashboard />);
 </script>
 </body>
 </html>

@@ -133,10 +133,29 @@
   // Hooks
   // ---------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------
+  // Shared session — persists across mounting/unmounting individual module
+  // components within the same page load, so logging in once on the
+  // dashboard carries through when a module component mounts afresh.
+  // (Plain module-level variables, not React state — each hook instance
+  // seeds its local useState from these on first render.)
+  // ---------------------------------------------------------------------
+  let _sessionRole = null;
+  let _sessionStudentId = null;
+  let _sessionDemoMode = false;
+  let _sessionRosterCache = null;
+
+  function resetSession() {
+    _sessionRole = null;
+    _sessionStudentId = null;
+    _sessionDemoMode = false;
+  }
+
   function useAuth() {
-    const [role, setRole] = useState(null);
+    const [role, setRoleState] = useState(_sessionRole);
     const [pin, setPin] = useState("");
     const [pinError, setPinError] = useState("");
+    function setRole(r) { _sessionRole = r; setRoleState(r); }
     function login(r) {
       if (r === "tutor" && pin !== "1234") { setPinError("Incorrect PIN."); return; }
       setPinError("");
@@ -146,22 +165,28 @@
   }
 
   function useRoster() {
-    const [roster, setRosterState] = useState([]);
-    const [studentId, setStudentId] = useState(null);
-    const [demoMode, setDemoMode] = useState(false);
+    const [roster, setRosterState] = useState(_sessionRosterCache || []);
+    const [studentId, setStudentIdState] = useState(_sessionStudentId);
+    const [demoMode, setDemoModeState] = useState(_sessionDemoMode);
 
     useEffect(() => {
       let cancelled = false;
       (async () => {
         const r = await getRoster();
+        _sessionRosterCache = r;
         if (!cancelled) setRosterState(r);
       })();
       return () => { cancelled = true; };
     }, []);
 
     async function refreshRoster() {
-      setRosterState(await getRoster());
+      const r = await getRoster();
+      _sessionRosterCache = r;
+      setRosterState(r);
     }
+
+    function setStudentId(id) { _sessionStudentId = id; setStudentIdState(id); }
+    function setDemoMode(v) { _sessionDemoMode = v; setDemoModeState(v); }
 
     return { roster, studentId, setStudentId, demoMode, setDemoMode, refreshRoster };
   }
@@ -295,6 +320,7 @@
     getRoster, addRosterStudent, removeRosterStudent,
     getProgress, setProgress, getNotes, setNotes,
     scoreResponse,
+    resetSession,
     // hooks
     useAuth, useRoster, useModuleProgress, useBenchmarkTimer, useTopicRotation,
   };
